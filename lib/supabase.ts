@@ -1,12 +1,11 @@
 import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Use AsyncStorage only on native platforms, use localStorage on web
+// Use localStorage on web, let the new authService handle token storage on native
 const storage =
   Platform.OS === "web"
     ? {
@@ -29,7 +28,11 @@ const storage =
           return Promise.resolve();
         },
       }
-    : AsyncStorage;
+    : {
+        getItem: () => Promise.resolve(null),
+        setItem: () => Promise.resolve(),
+        removeItem: () => Promise.resolve(),
+      };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
