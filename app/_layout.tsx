@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import "../global.css";
 import { Platform } from "react-native";
-import { AppProvider } from "./context/AppContext";
+import { AppProvider } from "../src/context/AppContext";
 import { initializeDatabase } from "./config/database";
 import { offlineService } from "./services/offline";
 

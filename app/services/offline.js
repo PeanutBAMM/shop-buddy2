@@ -9,19 +9,32 @@ export const offlineService = {
   async init() {
     // Listen for network changes
     const unsubscribe = NetInfo.addEventListener((state) => {
-      this.isOnline = state.isConnected;
+      this.isOnline = state.isConnected && state.isInternetReachable;
       if (this.isOnline) {
         this.syncQueue();
       }
     });
 
     // Load queued operations
-    const savedQueue = await AsyncStorage.getItem("offlineQueue");
-    if (savedQueue) {
-      this.queue = JSON.parse(savedQueue);
+    try {
+      const savedQueue = await AsyncStorage.getItem("offlineQueue");
+      if (savedQueue) {
+        this.queue = JSON.parse(savedQueue);
+      }
+    } catch (error) {
+      console.error("Error loading offline queue:", error);
+      this.queue = [];
     }
 
-    return unsubscribe;
+    return () => {
+      try {
+        if (unsubscribe && typeof unsubscribe === "function") {
+          unsubscribe();
+        }
+      } catch (error) {
+        console.error("Error unsubscribing from network listener:", error);
+      }
+    };
   },
 
   async addToQueue(operation) {

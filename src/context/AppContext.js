@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { authService } from "../services/auth";
-import { apiService } from "../services/api";
-import { errorHandler } from "../utils/errorHandler";
+import { authService } from "../../app/services/auth";
+import { apiService } from "../../app/services/api";
+import { errorHandler } from "../../app/utils/errorHandler";
 
 const AppContext = createContext();
 

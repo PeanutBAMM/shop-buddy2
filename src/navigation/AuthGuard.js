@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useRouter } from "expo-router";
-import { useApp } from "../../src/context/AppContext";
+import { useApp } from "../context/AppContext";
 import { View, ActivityIndicator } from "react-native";
 
 export const AuthGuard = ({ children, requireAuth = true }) => {

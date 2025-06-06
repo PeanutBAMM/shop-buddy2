@@ -2,14 +2,17 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
+  process.env.EXPO_PUBLIC_API_URL || "https://api.example.com";
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
+  },
+  validateStatus: function (status) {
+    return status < 500; // Resolve only if the status code is less than 500
   },
 });
 
