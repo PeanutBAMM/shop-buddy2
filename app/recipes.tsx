@@ -58,7 +58,7 @@ export default function RecipesScreen() {
         .order("created_at", { ascending: false });
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Recipes fetch timeout")), 15000),
+        setTimeout(() => reject(new Error("Recipes fetch timeout")), 8000),
       );
 
       const { data, error } = await Promise.race([
@@ -88,7 +88,7 @@ export default function RecipesScreen() {
     }
 
     try {
-      // Subscribe to recipes changes with throttling and error handling
+      // Subscribe to recipes changes with enhanced error handling
       recipesChannel.current = supabase
         .channel(`recipes_changes_${Date.now()}`, {
           config: {
@@ -108,29 +108,41 @@ export default function RecipesScreen() {
               // Throttle updates to prevent memory issues
               setTimeout(() => {
                 handleRecipeRealtimeChange(payload);
-              }, 100);
+              }, 200);
             } catch (error) {
               console.error("Error handling realtime recipe change:", error);
             }
           },
         )
-        .subscribe((status) => {
+        .subscribe((status, err) => {
           if (status === "SUBSCRIBED") {
             console.log("Recipes realtime subscription active");
-          } else if (status === "CHANNEL_ERROR") {
-            console.error("Recipes realtime subscription error");
-            // Attempt to reconnect after a delay
-            setTimeout(() => {
-              if (recipesChannel.current) {
+          } else if (status === "CHANNEL_ERROR" || status === "CLOSED") {
+            console.error("Recipes realtime subscription error:", err);
+            // Clean up and attempt to reconnect after a delay
+            if (recipesChannel.current) {
+              try {
                 supabase.removeChannel(recipesChannel.current);
-                recipesChannel.current = null;
-                setupRealtimeSubscriptions();
+              } catch (cleanupError) {
+                console.warn("Error cleaning up channel:", cleanupError);
               }
-            }, 5000);
+              recipesChannel.current = null;
+            }
+            // Exponential backoff for reconnection
+            setTimeout(
+              () => {
+                if (!recipesChannel.current) {
+                  setupRealtimeSubscriptions();
+                }
+              },
+              Math.min(5000 * Math.random(), 10000),
+            );
           }
         });
     } catch (error) {
       console.error("Error setting up realtime subscriptions:", error);
+      // Fallback: disable realtime if it keeps failing
+      recipesChannel.current = null;
     }
   };
 

@@ -71,23 +71,44 @@ export default function HomeScreen() {
 
     const fetchDashboardData = async () => {
       try {
-        // Fetch shopping lists
-        const { data: lists, error: listsError } = await supabase
+        // Fetch shopping lists with timeout
+        const listsPromise = supabase
           .from("shopping_lists")
           .select("id, name")
           .eq("user_id", user.id)
           .limit(5);
 
-        if (listsError) throw listsError;
-        setAvailableLists(lists || []);
+        const listsTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Lists fetch timeout")), 8000),
+        );
 
-        // Fetch hero content with proper error handling
+        const { data: lists, error: listsError } = await Promise.race([
+          listsPromise,
+          listsTimeoutPromise,
+        ]);
+
+        if (listsError) {
+          console.warn("Lists fetch error:", listsError);
+          setAvailableLists([]);
+        } else {
+          setAvailableLists(lists || []);
+        }
+
+        // Fetch hero content with proper error handling and timeout
         try {
-          const { data: heroData, error: heroError } =
-            await supabase.functions.invoke(
-              "supabase-functions-daily-hero-rotation",
-              { body: {} },
-            );
+          const heroPromise = supabase.functions.invoke(
+            "supabase-functions-daily-hero-rotation",
+            { body: {} },
+          );
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Hero content timeout")), 8000),
+          );
+
+          const { data: heroData, error: heroError } = await Promise.race([
+            heroPromise,
+            timeoutPromise,
+          ]);
 
           if (!heroError && heroData?.data) {
             setHeroContent(heroData.data);
@@ -109,6 +130,15 @@ export default function HomeScreen() {
           }
         } catch (heroFetchError) {
           console.warn("Hero content fetch failed:", heroFetchError);
+          // Set default hero content on error
+          setHeroContent({
+            id: "default",
+            header_text: "Welkom bij je slimme boodschappenlijst",
+            subtext: "Wat wil je vandaag kopen?",
+            hero_image_url:
+              "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80",
+            created_at: new Date().toISOString(),
+          });
         }
 
         // Fetch assistant categories with timeout
@@ -123,7 +153,7 @@ export default function HomeScreen() {
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(
               () => reject(new Error("Categories fetch timeout")),
-              10000,
+              6000,
             ),
           );
 
@@ -132,7 +162,7 @@ export default function HomeScreen() {
 
           if (!categoriesError && categories) {
             setAssistantCategories(categories);
-          } else if (categoriesError) {
+          } else {
             console.warn("Categories fetch error:", categoriesError);
             setAssistantCategories([]);
           }
@@ -154,7 +184,7 @@ export default function HomeScreen() {
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(
               () => reject(new Error("Suggestions fetch timeout")),
-              10000,
+              6000,
             ),
           );
 
@@ -163,7 +193,7 @@ export default function HomeScreen() {
 
           if (!suggestionsError && suggestions) {
             setProductSuggestions(suggestions);
-          } else if (suggestionsError) {
+          } else {
             console.warn("Suggestions fetch error:", suggestionsError);
             setProductSuggestions([]);
           }

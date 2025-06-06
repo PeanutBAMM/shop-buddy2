@@ -41,6 +41,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: {
     headers: {
       Connection: "keep-alive",
+      "Keep-Alive": "timeout=30, max=100",
+      "Cache-Control": "no-cache",
     },
   },
   db: {
@@ -48,7 +50,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   realtime: {
     params: {
-      eventsPerSecond: 10,
+      eventsPerSecond: 5,
+      heartbeatIntervalMs: 30000,
+      reconnectAfterMs: function (tries: number) {
+        return Math.min(tries * 1000, 10000);
+      },
     },
   },
 });
